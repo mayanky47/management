@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useMemo, useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
@@ -14,6 +14,7 @@ import CreateProjectModal from '../components/CreateProjectModal';
 import { useProjects } from '../hooks/useProjects';
 import { createProject } from '../services/projectService';
 import type { Project, ProjectType } from '../types/project';
+import { LayoutDashboard, ListChecks } from 'lucide-react';
 
 // --- CONSTANTS ---
 // Includes 'portfolio' as a type, though filtering logic might need adjustment in useProjects
@@ -144,6 +145,41 @@ export default function DashboardPage() {
 
   // --- RENDERING ---
 
+  const NavigationHeader: React.FC = () => {
+    const location = useLocation();
+    const activePath = location.pathname;
+    const navItemClass = "flex items-center px-4 py-2 rounded-lg transition-colors hover:bg-blue-50 text-gray-700 hover:text-blue-600";
+    const activeItemClass = "bg-blue-100 text-blue-700 font-semibold shadow-inner";
+
+    return (
+        <header className="bg-white shadow-sm sticky top-0 z-10 border-b border-gray-100">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+                <div className="text-2xl font-extrabold text-blue-600">Project Manager</div>
+                <nav className="flex space-x-2">
+                    {/* BUTTON TO SWITCH BACK TO PACKAGE PAGE (Root '/') */}
+                    <Link 
+                        to="/" 
+                        className={`${navItemClass} ${activePath === '/' ? activeItemClass : ''}`}
+                    >
+                        <ListChecks className="w-5 h-5 mr-1" />
+                        Packages
+                    </Link>
+                    {/* Link to the BoardPage - '/board' */}
+    
+                    {/* Link to the current page (DashboardPage) */}
+                    <Link 
+                        to="/dashboard" 
+                        className={`${navItemClass} ${activePath.includes('/dashboard') ? activeItemClass : ''}`}
+                    >
+                        <LayoutDashboard className="w-5 h-5 mr-1" />
+                        Dashboard
+                    </Link>
+                </nav>
+            </div>
+        </header>
+    );
+};
+
   // Function to render either a ProjectCard in Grid mode or a SortableItem in Board mode
   const renderProject = (project: Project) => (
     <ProjectCard
@@ -159,7 +195,8 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
+      <NavigationHeader />
       <Toaster position="top-right" richColors />
 
       {/* ⚠️ Update Header: onCreate should probably open the modal without a specific type */}
