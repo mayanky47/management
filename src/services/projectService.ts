@@ -1,11 +1,13 @@
 import type { Project, ProjectFormData } from '../types/project';
 
+// Use VITE_API_BASE for consistency, falling back to localhost
 const VITE_API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8080/api';
 
 const ENDPOINTS = {
   projects: `${VITE_API_BASE}/projects`,
   open: `${VITE_API_BASE}/open/projects`,
   create: `${VITE_API_BASE}/create/projects`,
+  analyze: `${VITE_API_BASE}/analyze/projects`, // <-- NEW ANALYSIS ENDPOINT
 };
 
 async function handle(res: Response) {
@@ -22,8 +24,10 @@ export async function getProjects(): Promise<Project[]> {
   return handle(res);
 }
 
-export async function updateProject(id: number, data: ProjectFormData): Promise<Project> {
-  const res = await fetch(`${ENDPOINTS.projects}/${id}`, {
+// --- FIX: Changed 'id: number' to 'name: string' ---
+export async function updateProject(name: string, data: ProjectFormData): Promise<Project> {
+  // Use 'name' in the URL, not 'id'
+  const res = await fetch(`${ENDPOINTS.projects}/${encodeURIComponent(name)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -40,8 +44,10 @@ export async function createProject(data: ProjectFormData): Promise<Project> {
   return handle(res);
 }
 
-export async function deleteProject(id: number): Promise<string> {
-  const res = await fetch(`${ENDPOINTS.projects}/${id}`, { method: 'DELETE' });
+// --- FIX: Changed 'id: number' to 'name: string' ---
+export async function deleteProject(name: string): Promise<string> {
+  // Use 'name' in the URL, not 'id'
+  const res = await fetch(`${ENDPOINTS.projects}/${encodeURIComponent(name)}`, { method: 'DELETE' });
   return handle(res);
 }
 
@@ -50,6 +56,14 @@ export async function openProject(project: Project): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(project),
+  });
+  return handle(res);
+}
+
+// --- NEW: Function to trigger backend analysis ---
+export async function analyzeProject(name: string): Promise<Project> {
+  const res = await fetch(`${ENDPOINTS.analyze}/${encodeURIComponent(name)}`, {
+    method: 'POST',
   });
   return handle(res);
 }

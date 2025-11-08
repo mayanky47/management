@@ -1,21 +1,18 @@
-export type ProjectType = 'React' | 'Spring' | 'HTML/CSS/JS' | 'Python' | 'Java' | 'Other' | 'Portfolio'; // <-- Added 'Portfolio'
+export type ProjectType = 'React' | 'Spring' | 'HTML/CSS/JS' | 'Python' | 'Java' | 'Other' | 'Portfolio';
 export type ProjectStatus = 'active' | 'on-hold' | 'completed' | 'archived';
 export type ProjectPriority = 'High' | 'Medium' | 'Low';
 
-// --- NEW TYPE: Represents a simplified project when nested inside a Portfolio ---
 export interface SubProject {
-    // Note: No 'id' as it might be created with the parent, use name for keying
     name: string;
-    type: Exclude<ProjectType, 'Portfolio'>; // Sub-projects cannot be Portfolios themselves
+    type: Exclude<ProjectType, 'Portfolio'>;
     status?: ProjectStatus;
-    progress?: number; // 0-100
-    // Additional minimal fields can be added here if needed
+    progress?: number;
 }
 
 // Full Project interface as returned from backend or stored in state
 export interface Project {
-    id: number;
-    name: string;
+    // id: number; // <-- This was incorrect. The backend uses 'name' as the @Id
+    name: string; // The 'name' is the primary key
     type: ProjectType;
     path: string;
     purpose: string;
@@ -27,12 +24,12 @@ export interface Project {
     priority?: ProjectPriority;
     dueDate?: string; // ISO string
     
-    // --- NEW FIELD: Sub-Projects (Only relevant for type 'Portfolio') ---
-    subProjects?: SubProject[]; 
-
-    // --- NEW FIELD: Dependencies ---
-    // Array of names (or IDs) of other existing projects this project depends on
-    dependencies?: string[]; 
+    subProjects?: SubProject[];
+    dependencies?: string[];
+    
+    // --- NEW FIELDS from model update ---
+    apiMetadata?: string; // JSON string for REST endpoints
+    componentMetadata?: string; // JSON string for React components
 }
 
 // Form data used for creating or updating projects
@@ -48,16 +45,11 @@ export type ProjectFormData = {
     progress?: number;
     owner?: string;
     
-    // --- NEW FIELD for Form Data ---
-    // The form will collect a list of dependencies
-    dependencies?: string[]; 
-    
-    // --- NEW FIELD for Portfolio creation ---
-    // The form might collect data for sub-projects if type is 'Portfolio'
-    subProjects?: SubProject[]; 
+    dependencies?: string[];
+    subProjects?: SubProject[];
 };
 
-// UI-specific type for showing messages / notifications (no change needed here)
+// UI-specific type for showing messages / notifications
 export interface ShowProjectMessage {
     visible: boolean;
     message: string;

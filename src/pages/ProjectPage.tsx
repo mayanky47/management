@@ -1,119 +1,129 @@
-// src/pages/ProjectPage.tsx
-import { useNavigate, useParams } from 'react-router-dom';
-import { useProjects } from '../hooks/useProjects';
-import { Tag } from '../components/Tag';
-import { ArrowLeft, Trash2, Edit, FolderOpen } from 'lucide-react';
-import { Toaster, toast } from 'sonner';
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Toaster, toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+import { useProjects } from "../hooks/useProjects";
+import ProjectDetailsCard from "../components/projects/ProjectDetailsCard";
+import ProjectInsights from "../components/projects/ProjectInsights";
+import ProjectLoadingSkeleton from "../components/projects/ProjectLoadingSkeleton";
+import { ProjectAPI } from "../api/projectApi";
 
-export default function ProjectPage() {
+const ProjectPage = () => {
   const { name } = useParams();
   const navigate = useNavigate();
   const { filtered, doDelete, doOpen } = useProjects();
 
-  const project = filtered.find(p => p.name === name);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAddingSQLite, setIsAddingSQLite] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
 
-  if (!project) return <p className="p-8 text-gray-600">Project not found.</p>;
+  const project = filtered.find((p) => p.name === name);
 
-  const handleDelete = async () => {
+  /** 🔹 Fetch project analysis data */
+  const fetchAnalysis = async () => {
+    if (!project) return;
     try {
-      await doDelete(project.name);
-      toast.success(`Deleted "${project.name}"`);
-      navigate('/');
+      const data = await ProjectAPI.fetchAnalysis(project.name);
+      setAnalysisData(data);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete project');
+      console.warn(err.message || "No analysis data found yet.");
     }
   };
 
+  useEffect(() => {
+    if (project) fetchAnalysis();
+  }, [project]);
+
+  /** 🔹 Delete project */
+  const handleDelete = async () => {
+    if (!project || !window.confirm(`Delete "${project.name}"?`)) return;
+    try {
+      await ProjectAPI.deleteProject(project.name);
+      await doDelete(project.name);
+      toast.success(`Deleted "${project.name}"`);
+      navigate("/");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete project");
+    }
+  };
+
+  /** 🔹 Open project in IDE */
   const handleOpen = async () => {
     try {
       if (doOpen) {
-        await doOpen(project);
-        toast.success(`Project "${project.name}" opened successfully`);
-      } else {
-        toast.info(`Opening "${project.name}" (API not implemented)`);
+        await doOpen(project!);
+        toast.success(`Opening "${project!.name}"...`);
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to open project');
+      toast.error(err.message || "Failed to open project");
     }
   };
 
+  /** 🔹 Analyze project */
+  const handleAnalyze = async () => {
+    if (isAnalyzing || !project) return;
+    setIsAnalyzing(true);
+    toast.loading(`Analyzing "${project.name}"...`);
+    try {
+      const data = await ProjectAPI.analyzeProject(project.name);
+      setAnalysisData(data);
+      toast.success(`Analysis complete for "${project.name}"`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to analyze project");
+    } finally {
+      setIsAnalyzing(false);
+      toast.dismiss();
+    }
+  };
+
+  /** 🔹 Add SQLite dependency */
+  const handleAddSQLite = async () => {
+    if (isAddingSQLite || !project) return;
+    setIsAddingSQLite(true);
+    toast.loading(`Adding SQLite to "${project.name}"...`);
+    try {
+      await ProjectAPI.addSQLite(project.name);
+      toast.success("SQLite added successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add SQLite");
+    } finally {
+      setIsAddingSQLite(false);
+      toast.dismiss();
+    }
+  };
+
+  /** 🔹 Handle not found or loading states */
+  if (!project) return <ProjectLoadingSkeleton />;
+
+  /** 🔹 Render main content */
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <>
       <Toaster position="top-right" richColors />
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back
-        </button>
-        <div className="flex gap-2 flex-wrap">
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto max-w-7xl p-4 md:p-8">
           <button
-            onClick={handleOpen}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl shadow hover:bg-purple-700 transition"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium mb-6"
           >
-            <FolderOpen className="w-4 h-4" />
-            Open Project
+            <ArrowLeft className="w-5 h-5" /> Back
           </button>
-          <button
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
-          >
-            <Edit className="w-4 h-4" />
-            Edit
-          </button>
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl shadow hover:bg-red-700 transition"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
-        </div>
-      </div>
 
-      {/* Project Info */}
-      <div className="bg-white rounded-2xl shadow p-6 md:p-8 space-y-4">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">{project.name}</h1>
-
-        {/* Status, Type, Tags */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {project.status && <Tag label={project.status} type="status" status={project.status} />}
-          <Tag label={project.type} type="type" />
-          {project.tags?.map(tag => <Tag key={tag} label={tag} />)}
-        </div>
-
-        {/* Progress */}
-        {project.progress !== undefined && (
-          <div className="mt-4">
-            <p className="text-gray-600 mb-1">Progress: {project.progress}%</p>
-            <div className="w-full h-3 bg-gray-200 rounded-full">
-              <div
-                className="h-3 bg-blue-500 rounded-full transition-all"
-                style={{ width: `${project.progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Details Sections */}
-        <div className="grid md:grid-cols-3 gap-6 mt-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Purpose</h2>
-            <p className="text-gray-600">{project.purpose || 'No purpose provided.'}</p>
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Past Activities</h2>
-            <p className="text-gray-600">{project.pastActivities || 'No past activities recorded.'}</p>
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Future Plans</h2>
-            <p className="text-gray-600">{project.futurePlans || 'No future plans defined.'}</p>
+          <div className="space-y-8">
+            <ProjectDetailsCard project={project} />
+            <ProjectInsights
+              analysisData={analysisData}
+              isAnalyzing={isAnalyzing}
+              isAddingSQLite={isAddingSQLite}
+              onAnalyze={handleAnalyze}
+              onAddSQLite={handleAddSQLite}
+              onOpen={handleOpen}
+              onDelete={handleDelete}
+            />
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
-}
+};
+
+export default ProjectPage;
