@@ -1,11 +1,12 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Toaster, toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Code2 } from "lucide-react";
 import { useProjects } from "../hooks/useProjects";
 import ProjectDetailsCard from "../components/projects/ProjectDetailsCard";
 import ProjectInsights from "../components/projects/ProjectInsights";
 import ProjectLoadingSkeleton from "../components/projects/ProjectLoadingSkeleton";
+import ArchitectureGraphViewer from "../components/projects/ArchitectureGraphViewer";
 import { ProjectAPI } from "../api/projectApi";
 
 const ProjectPage = () => {
@@ -95,21 +96,24 @@ const ProjectPage = () => {
   /** 🔹 Handle not found or loading states */
   if (!project) return <ProjectLoadingSkeleton />;
 
-  /** 🔹 Render main content */
   return (
     <>
       <Toaster position="top-right" richColors />
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto max-w-7xl p-4 md:p-8">
+          {/* Navigation */}
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium mb-6"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium mb-6 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" /> Back
+            <ArrowLeft className="w-5 h-5" /> Back to Hub
           </button>
 
           <div className="space-y-8">
+            {/* Top Card: Metadata */}
             <ProjectDetailsCard project={project} />
+
+            {/* Main Dashboard: Architecture, Dependencies, Config */}
             <ProjectInsights
               analysisData={analysisData}
               isAnalyzing={isAnalyzing}
@@ -118,6 +122,18 @@ const ProjectPage = () => {
               onAddSQLite={handleAddSQLite}
               onOpen={handleOpen}
               onDelete={handleDelete}
+              // ⚡️ INJECTED GRAPH COMPONENT
+              architectureGraph={
+                project.type === "Spring" ? (
+                  <ArchitectureGraphViewer projectName={project.name} />
+                ) : (
+                  // Fallback for React/Other projects
+                  <div className="h-[400px] flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <Code2 className="w-12 h-12 mb-2 opacity-20" />
+                    <p>Architecture visualization is currently optimized for Spring Boot projects.</p>
+                  </div>
+                )
+              }
             />
           </div>
         </div>

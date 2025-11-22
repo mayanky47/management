@@ -195,8 +195,8 @@ After the first line, provide only the code body.
             disabled={!pkg.projects?.length}
           />
           <AutoSaveSection
-            springProject={pkg.projects?.[1]?.name || ""}
-            reactProject={pkg.projects?.[0]?.name || ""}
+            springProject={pkg.projects?.[0]?.name || ""}
+            reactProject={pkg.projects?.[1]?.name || ""}
           />
         </section>
       </div>
